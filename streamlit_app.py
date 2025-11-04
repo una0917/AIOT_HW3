@@ -35,7 +35,8 @@ def load_csv(path: str) -> pd.DataFrame:
 @st.cache_data(show_spinner=False)
 def list_datasets() -> List[str]:
     paths: List[str] = []
-    for root in ("datasets", os.path.join("datasets", "processed")):
+    # look in common places: data/, datasets/, datasets/processed/
+    for root in ("data", "datasets", os.path.join("datasets", "processed")):
         if os.path.isdir(root):
             for name in os.listdir(root):
                 p = os.path.join(root, name)
@@ -110,11 +111,40 @@ def main():
     with st.sidebar:
         st.header("Inputs")
         datasets = list_datasets()
-        ds_path = st.selectbox("Dataset CSV", datasets, index=datasets.index("datasets/processed/sms_spam_clean.csv") if "datasets/processed/sms_spam_clean.csv" in datasets else 0)
+        # If common data files exist, prefer them so the selectbox is not empty
+        default_candidates = [
+            os.path.join("data", "sms_spam_no_header.csv"),
+            os.path.join("datasets", "processed", "sms_spam_clean.csv"),
+            os.path.join("datasets", "sms_spam_no_header.csv"),
+        ]
+        for c in default_candidates:
+            if os.path.exists(c) and c not in datasets:
+                datasets.insert(0, c)
+
+        if not datasets:
+            st.info("No dataset CSV found in repository. You can download the sample dataset or upload your own CSV.")
+            if st.button("Download sample dataset"):
+                import subprocess
+                import sys
+
+                try:
+                    subprocess.check_call([sys.executable, os.path.join("scripts", "download_data.py")])
+                    st.experimental_rerun()
+                except Exception as e:
+                    st.error(f"Failed to download dataset: {e}")
+            # Stop further rendering until a dataset is available
+            return
+
+        # choose a sensible default index if the preferred file exists
+        preferred = os.path.join("datasets", "processed", "sms_spam_clean.csv")
+        default_index = datasets.index(preferred) if preferred in datasets else 0
+        ds_path = st.selectbox("Dataset CSV", datasets, index=default_index)
+
+        # load sample of df in the sidebar to let user pick cols
         df = load_csv(ds_path)
-        label_col, text_col = infer_cols(df)
-        label_col = st.selectbox("Label column", options=list(df.columns), index=list(df.columns).index(label_col))
-        text_col = st.selectbox("Text column", options=list(df.columns), index=list(df.columns).index(text_col))
+        label_col_guess, text_col_guess = infer_cols(df)
+        label_col = st.selectbox("Label column", options=list(df.columns), index=list(df.columns).index(label_col_guess))
+        text_col = st.selectbox("Text column", options=list(df.columns), index=list(df.columns).index(text_col_guess))
 
         models_dir = st.text_input("Models dir", value="models")
         test_size = st.slider("Test size", min_value=0.1, max_value=0.4, value=0.2, step=0.05)
@@ -122,6 +152,8 @@ def main():
         threshold = st.slider("Decision threshold", min_value=0.1, max_value=0.9, value=0.5, step=0.01)
 
     st.subheader("Data Overview")
+    # Basic dataset statistics
+
     c1, c2 = st.columns(2)
     with c1:
         st.write("Class distribution")
@@ -165,40 +197,56 @@ def main():
         proba = clf.predict_proba(Xte_vec)[:, 1]
         pred = (proba >= threshold).astype(int)
 
-        # Confusion matrix
-        cm = confusion_matrix(yte, pred)
-        cm_df = pd.DataFrame(cm, index=["true_0","true_1"], columns=["pred_0","pred_1"]) 
-        st.write("Confusion matrix")
-        st.dataframe(cm_df)
+        # Model evaluation: guard against single-class test splits
+        # Some datasets or random splits can produce a y_test containing only one class.
+        # In that case roc_curve and some visualizations are undefined and will raise.
+        if np.unique(yte).size < 2:
+            st.warning(
+                "Test set contains a single class — class-dependent metrics (ROC, Precision-Recall, and standard confusion matrix) are not available for this split."
+            )
+            st.write("Class counts in test set")
+            try:
+                # show counts for readability
+                counts_df = pd.DataFrame({"label": yte}).value_counts().rename("count")
+                st.table(counts_df)
+            except Exception:
+                # fallback simple display
+                st.write(pd.Series(yte).value_counts())
+        else:
+            # Confusion matrix
+            cm = confusion_matrix(yte, pred, labels=[0, 1])
+            cm_df = pd.DataFrame(cm, index=["true_0", "true_1"], columns=["pred_0", "pred_1"])
+            st.write("Confusion matrix")
+            st.dataframe(cm_df)
 
-        # ROC/PR curves
-        fpr, tpr, _ = roc_curve(yte, proba)
-        roc_auc = auc(fpr, tpr)
-        prec, rec, _ = precision_recall_curve(yte, proba)
-        pr_fig, pr_ax = plt.subplots(1, 2, figsize=(10, 4))
-        pr_ax[0].plot(fpr, tpr, label=f"AUC={roc_auc:.3f}")
-        pr_ax[0].plot([0,1],[0,1], linestyle="--", color="gray")
-        pr_ax[0].set_title("ROC")
-        pr_ax[0].set_xlabel("FPR"); pr_ax[0].set_ylabel("TPR")
-        PrecisionRecallDisplay(precision=prec, recall=rec).plot(ax=pr_ax[1])
-        pr_ax[1].set_title("Precision-Recall")
-        st.pyplot(pr_fig)
+            # ROC/PR curves
+            fpr, tpr, _ = roc_curve(yte, proba)
+            roc_auc = auc(fpr, tpr)
+            prec, rec, _ = precision_recall_curve(yte, proba)
+            pr_fig, pr_ax = plt.subplots(1, 2, figsize=(10, 4))
+            pr_ax[0].plot(fpr, tpr, label=f"AUC={roc_auc:.3f}")
+            pr_ax[0].plot([0, 1], [0, 1], linestyle="--", color="gray")
+            pr_ax[0].set_title("ROC")
+            pr_ax[0].set_xlabel("FPR"); pr_ax[0].set_ylabel("TPR")
+            PrecisionRecallDisplay(precision=prec, recall=rec).plot(ax=pr_ax[1])
+            pr_ax[1].set_title("Precision-Recall")
+            st.pyplot(pr_fig)
 
-        # Threshold sweep small table
-        st.write("Threshold sweep (precision/recall/f1)")
-        ths = np.round(np.linspace(0.3, 0.8, 11), 3)
-        rows = []
-        for t in ths:
-            p = (proba >= t).astype(int)
-            from sklearn.metrics import precision_score, recall_score, f1_score
+            # Threshold sweep small table
+            st.write("Threshold sweep (precision/recall/f1)")
+            ths = np.round(np.linspace(0.3, 0.8, 11), 3)
+            rows = []
+            for t in ths:
+                p = (proba >= t).astype(int)
+                from sklearn.metrics import precision_score, recall_score, f1_score
 
-            rows.append({
-                "threshold": t,
-                "precision": float(precision_score(yte, p, zero_division=0)),
-                "recall": float(recall_score(yte, p, zero_division=0)),
-                "f1": float(f1_score(yte, p, zero_division=0)),
-            })
-        st.dataframe(pd.DataFrame(rows))
+                rows.append({
+                    "threshold": t,
+                    "precision": float(precision_score(yte, p, zero_division=0)),
+                    "recall": float(recall_score(yte, p, zero_division=0)),
+                    "f1": float(f1_score(yte, p, zero_division=0)),
+                })
+            st.dataframe(pd.DataFrame(rows))
 
         # Live Inference
         st.subheader("Live Inference")

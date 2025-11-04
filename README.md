@@ -3,6 +3,16 @@
 此專案為一個以 SMS/Email spam 分類問題為主題的專案，包含資料下載腳本、模型訓練程式與一個 Streamlit 示範介面，用於展示資料分布、token 分析與模型評估/即時推論。
 This repository contains work for AIOT_HW3. It includes an OpenSpec-driven workflow and a Phase 1 machine-learning baseline for spam message classification.
 
+## Source Reference
+此專案參考並擴展自 Packt 的 Chapter 3 範例資料與處理流程：
+
+https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-for-Cybersecurity.git
+
+## Demo Site
+線上示範：
+
+https://aiothw3-kpbncczlchd8s6ychaxjcv.streamlit.app/
+
 ## Key files:
 - `streamlit_app.py` — Streamlit demo app (uses saved artifact `artifacts/svm_baseline.joblib`)
 - `src/ml/train_svm.py` — Training script (SVM baseline)
@@ -45,13 +55,4 @@ This repository contains work for AIOT_HW3. It includes an OpenSpec-driven workf
 1. 推上 GitHub 並在 Streamlit Cloud 建立新應用，連結對應的 repository 與 branch，entry file 設為 `streamlit_app.py`。
 2. 本專案已提供一個 runtime fallback：若 `models/` 不存在，App 會提供按鈕從本 repo 的指定 branch raw URL 下載 artifacts；長期建議把模型存放在 Release 或雲端儲存，再在 app 以 env var 指定下載來源。
 
-## Source Reference
-此專案參考並擴展自 Packt 的 Chapter 3 範例資料與處理流程：
-
-https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-for-Cybersecurity.git
-
-## Demo Site
-線上示範：
-
-https://aiothw3-kpbncczlchd8s6ychaxjcv.streamlit.app/
 

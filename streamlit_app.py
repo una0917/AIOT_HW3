@@ -1,7 +1,22 @@
 import streamlit as st
-import joblib
 import os
 from pathlib import Path
+
+
+def _get_joblib():
+    """Attempt to import joblib with fallbacks. Return module or None."""
+    try:
+        import joblib as _joblib
+        return _joblib
+    except Exception:
+        try:
+            # Older scikit-learn bundled location (rare)
+            from sklearn.externals import joblib as _joblib  # type: ignore
+
+            return _joblib
+        except Exception:
+            return None
+
 
 ARTIFACT = Path("artifacts") / "svm_baseline.joblib"
 
@@ -10,7 +25,18 @@ ARTIFACT = Path("artifacts") / "svm_baseline.joblib"
 def load_artifact(path: str):
     if not os.path.exists(path):
         return None
-    return joblib.load(path)
+    jb = _get_joblib()
+    if jb is None:
+        # show a helpful error in the app instead of crashing
+        st.error(
+            "Missing dependency 'joblib'. Please ensure `joblib` is in requirements.txt and redeploy."
+        )
+        return None
+    try:
+        return jb.load(path)
+    except Exception as e:
+        st.error(f"Failed to load model artifact: {e}")
+        return None
 
 
 def predict(model_bundle, text: str):

@@ -1,8 +1,6 @@
-# AIOT_HW3 — Spam Classification Demo
+# AIOT_HW3 — Spam Email Classifier
 
-此專案為教師範例的延伸：一個以 SMS/Email spam 分類問題為主題的教學專案，包含資料下載腳本、模型訓練程式與一個 Streamlit 示範介面，用於展示資料分布、token 分析與模型評估/即時推論。
-# AIOT_HW3 — Spam Classification & Telemetry
-
+此專案為一個以 SMS/Email spam 分類問題為主題的專案，包含資料下載腳本、模型訓練程式與一個 Streamlit 示範介面，用於展示資料分布、token 分析與模型評估/即時推論。
 This repository contains work for AIOT_HW3. It includes an OpenSpec-driven workflow and a Phase 1 machine-learning baseline for spam message classification.
 
 ## Key files:

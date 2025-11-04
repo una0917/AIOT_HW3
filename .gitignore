@@ -20,9 +20,9 @@ env/
 .ipynb_checkpoints/
 
 # Data and model artifacts (do not commit large datasets or trained models)
+# Keep data/ and artifacts/ ignored; models/ will be versioned for demo deploy
 /data/
 artifacts/
-models/
 *.joblib
 *.pkl
 

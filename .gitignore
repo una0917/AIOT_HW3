@@ -22,6 +22,10 @@ env/
 # Data and model artifacts (do not commit large datasets or trained models)
 # Keep data/ and artifacts/ ignored; models/ will be versioned for demo deploy
 /data/
+# allow adding these small Packt sample CSVs for the demo
+!/data/phishing_dataset.csv
+!/data/sms_spam_perceptron.csv
+!/data/sms_spam_svm.csv
 artifacts/
 *.joblib
 *.pkl

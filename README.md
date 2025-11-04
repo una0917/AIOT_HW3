@@ -1,3 +1,6 @@
+# AIOT_HW3 — Spam Classification Demo
+
+此專案為教師範例的延伸：一個以 SMS/Email spam 分類問題為主題的教學專案，包含資料下載腳本、模型訓練程式與一個 Streamlit 示範介面，用於展示資料分布、token 分析與模型評估/即時推論。
 # AIOT_HW3 — Spam Classification & Telemetry
 
 This repository contains work for AIOT_HW3. It includes an OpenSpec-driven workflow and a Phase 1 machine-learning baseline for spam message classification.
@@ -9,35 +12,51 @@ Key files:
 - `requirements.txt` — Python dependencies
 - `scripts/setup_venv.ps1` — PowerShell helper to create a `.venv` and install dependencies
 
-## Run locally (PowerShell)
-1. Create venv and install deps (or run the helper script):
+重要檔案
+- `streamlit_app.py` — Streamlit 前端（主程式）。
+- `src/ml/` — 訓練與前處理腳本（`train_logreg.py`, `train_svm.py`, `preprocess.py`）。
+- `scripts/download_teacher_datasets.py` — 下載教師提供的 demo CSV 到 `data/`。
+- `models/` — 模型 artifacts（`.joblib`）與 `spam_label_mapping.json`（小型 demo artifacts 已放入 repo 以便部署示範）。
+
+快速上手（PowerShell）
+1. 建立虛擬環境並安裝依賴：
 
 ```powershell
 .\scripts\setup_venv.ps1
 ```
 
-2. (Optional) download dataset:
+2. 下載教師提供的資料：
 
 ```powershell
-.\.venv\Scripts\python.exe .\scripts\download_data.py
+.\.venv\Scripts\python.exe .\scripts\download_teacher_datasets.py
 ```
 
-3. Train a quick sample model:
+3. （選擇性）訓練模型：
 
 ```powershell
-.\.venv\Scripts\python.exe -m src.ml.train_svm --sample
+.\.venv\Scripts\python.exe -m src.ml.train_logreg
 ```
 
-4. Run Streamlit locally:
+4. 執行 Streamlit 應用：
 
 ```powershell
 .\.venv\Scripts\python.exe -m streamlit run streamlit_app.py
 ```
 
-## Deploy to Streamlit Cloud
-1. Push this repository to GitHub.
-2. On Streamlit Cloud, click "New app" → connect the GitHub repository → set the main file to `streamlit_app.py` → Deploy.
-3. Ensure `requirements.txt` is present in repo root (it is). If your model artifact is large, consider storing the model in a small storage (S3) and modifying the app to download at startup; for demo purposes the artifact is included in `artifacts/`.
+部署到 Streamlit Cloud
+1. 推上 GitHub 並在 Streamlit Cloud 建立新應用，連結對應的 repository 與 branch，entry file 設為 `streamlit_app.py`。
+2. 本專案已提供一個 runtime fallback：若 `models/` 不存在，App 會提供按鈕從本 repo 的指定 branch raw URL 下載 artifacts；長期建議把模型存放在 Release 或雲端儲存，再在 app 以 env var 指定下載來源。
 
-## Notes
-- The current baseline uses LinearSVC which does not provide calibrated probabilities. The app shows the decision function score as a confidence proxy. In Phase 2 we can retrain with `LogisticRegression` and serve calibrated probabilities.
+Source Reference
+此專案參考並擴展自 Packt 的 Chapter 3 範例資料與處理流程：
+
+https://github.com/PacktPublishing/Hands-On-Artificial-Intelligence-for-Cybersecurity.git
+
+Demo Site
+線上示範：
+
+https://aiothw3-kpbncczlchd8s6ychaxjcv.streamlit.app/
+
+---
+
+若需要我把 README 再精簡或加入更多教學步驟（例如上傳模型到 GitHub Releases 的指引或自動化 script），請告訴我，我可以接著新增並 push。

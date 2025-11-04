@@ -338,7 +338,15 @@ def main():
                 st.write(m)
             if ok:
                 st.success("Model artifacts downloaded. Reloading app...")
-                st.experimental_rerun()
+                try:
+                    st.experimental_rerun()
+                except Exception as e:
+                    # Some Streamlit deploy environments may restrict experimental rerun.
+                    # Fall back to asking the user to manually refresh the page.
+                    st.warning(
+                        "Automatic reload failed — please refresh the browser page to load the newly downloaded models."
+                    )
+                    st.write(f"Reload hint (for debugging): {e}")
             else:
                 st.error("Failed to download some or all model artifacts. Check messages above.")
 

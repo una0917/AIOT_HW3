@@ -18,12 +18,15 @@ def _get_joblib():
             return None
 
 
-ARTIFACT = Path("artifacts") / "svm_baseline.joblib"
+# Get the absolute path to the directory of the current script
+APP_ROOT = Path(__file__).parent
+ARTIFACT = APP_ROOT / "artifacts" / "svm_baseline.joblib"
 
 
 @st.cache_resource
 def load_artifact(path: str):
     if not os.path.exists(path):
+        st.error(f"Artifact file not found at {path}")
         return None
     jb = _get_joblib()
     if jb is None:

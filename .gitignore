@@ -1,0 +1,51 @@
+# Python caches and artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pdb
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data and model artifacts (do not commit large datasets or trained models)
+/data/
+artifacts/
+models/
+*.joblib
+*.pkl
+
+# Node
+node_modules/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
+
+# Environment files
+.env
+.env.*
+
+# Testing
+.pytest_cache/
+
+# Coverage
+htmlcov/
+.coverage

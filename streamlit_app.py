@@ -10,6 +10,8 @@ import pandas as pd
 import streamlit as st
 import matplotlib.pyplot as plt
 import seaborn as sns
+import urllib.request
+import shutil
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import (
     confusion_matrix,
@@ -102,6 +104,39 @@ def normalize_text(text: str, keep_numbers: bool = False) -> str:
     t = re.sub(r"[^\w\s<>]", " ", t)
     t = re.sub(r"\s+", " ", t).strip()
     return t
+
+
+def download_models_from_github(models_dir: str, owner: str, repo: str, branch: str) -> tuple[bool, list]:
+    """Download model artifact files from the GitHub repo raw URLs into models_dir.
+
+    Returns (success: bool, messages: List[str]). Uses only stdlib urllib so no extra deps.
+    """
+    os.makedirs(models_dir, exist_ok=True)
+    files = [
+        "spam_tfidf_vectorizer.joblib",
+        "spam_logreg_model.joblib",
+        "spam_label_mapping.json",
+    ]
+    base = f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/models"
+    msgs = []
+    ok_all = True
+    for fn in files:
+        url = f"{base}/{fn}"
+        dst = os.path.join(models_dir, fn)
+        try:
+            # stream download to file
+            with urllib.request.urlopen(url, timeout=30) as resp:
+                if resp.status != 200:
+                    msgs.append(f"{fn}: HTTP {resp.status}")
+                    ok_all = False
+                    continue
+                with open(dst, "wb") as out_f:
+                    shutil.copyfileobj(resp, out_f)
+            msgs.append(f"Downloaded {fn}")
+        except Exception as e:
+            msgs.append(f"Failed {fn}: {e}")
+            ok_all = False
+    return ok_all, msgs
 
 def main():
     st.title("Spam/Ham Classifier — Phase 4 Visualizations")
@@ -291,6 +326,21 @@ def main():
         
     else:
         st.info("Model artifacts not found in 'models/'. Train the model first to enable performance plots.")
+        # Offer to download model artifacts from this repo's branch (raw GitHub URLs)
+        st.write("If you don't want to commit binary artifacts to git, you can download them at runtime.")
+        if st.button("Download model artifacts from GitHub"):
+            owner = "una0917"
+            repo = "AIOT_HW3"
+            branch = "feature/add-streamlit-deploy"
+            with st.spinner("Downloading model artifacts..."):
+                ok, msgs = download_models_from_github(models_dir, owner, repo, branch)
+            for m in msgs:
+                st.write(m)
+            if ok:
+                st.success("Model artifacts downloaded. Reloading app...")
+                st.experimental_rerun()
+            else:
+                st.error("Failed to download some or all model artifacts. Check messages above.")
 
 
 if __name__ == "__main__":
